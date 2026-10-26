@@ -1,0 +1,26 @@
+name: Push Listener & Alerta
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  crear-notificacion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Crear Issue "Push detectado"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Push detectado en la rama: ${GITHUB_REF_NAME}" \
+            --body "Se registró un push en el commit \`${GITHUB_SHA:0:7}\` por @${GITHUB_ACTOR}."

@@ -4,6 +4,7 @@ on:
   push:
     branches-ignore:
       - main
+      - dev
 
 permissions:
   contents: read
@@ -11,16 +12,16 @@ permissions:
   pull-requests: write
 
 jobs:
-  crear-notificacion:
+  create-push-notification:
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar el código
-        uses: actions/checkout@v4
+      - name: Download repository code
+        uses: actions/checkout@v5
 
-      - name: Crear Issue "Push detectado"
+      - name: Create Issue "Push detected"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue create \
-            --title "Push detectado en la rama: ${GITHUB_REF_NAME}" \
-            --body "Se registró un push en el commit \`${GITHUB_SHA:0:7}\` por @${GITHUB_ACTOR}."
+            --title "Push detected: ${GITHUB_REF_NAME}" \
+            --body "A push was detected in commit \`${GITHUB_SHA:0:7}\` by @${GITHUB_ACTOR}."

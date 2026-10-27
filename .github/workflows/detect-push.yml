@@ -2,7 +2,7 @@ name: Push Listener & Alerta
 
 on:
   push:
-    branches-ignore:
+    branches:
       - main
       - dev
 

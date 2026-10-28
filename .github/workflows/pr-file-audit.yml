@@ -1,0 +1,52 @@
+name: Auditoría de Pull Requests
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  audit-changes:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download repository code
+        uses: actions/checkout@v5
+
+      - name: Get list of changed files and create Issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          BASE_BRANCH: ${{ github.base_ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          # 1. Get the list of changed file names
+          CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only)
+
+          # 2. Format the list in Markdown for the Issue
+          cat <<EOF > body.md
+          ## Changed files in PR #${PR_NUMBER}
+
+          - **Title:** ${PR_TITLE}
+          - **Author:** @${PR_AUTHOR}
+          - **Destination:** \`${HEAD_BRANCH}\` ➔ \`${BASE_BRANCH}\`
+
+          ### List of changes:
+          \`\`\`text
+          ${CHANGED_FILES}
+          \`\`\`
+          EOF
+
+          # 3. Create the Issue using the generated text file
+          gh issue create \
+            --title "[PR Audit #${PR_NUMBER}] Changes towards ${BASE_BRANCH}" \
+            --body-file body.md

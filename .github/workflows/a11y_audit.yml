@@ -60,7 +60,7 @@ jobs:
             echo "--- Analizando: $file ---"
           
             # Ejecuta el CLI indicando volcar a archivo temporal
-            python -m a11y_guardian.cli audit "$file" --json-output "temp_comments.json" || true
+            python -m a11y_guardian.cli "$file" --json-output "temp_comments.json" || true
           
             # Concatena los comentarios si el archivo temporal existe
             if [ -f "temp_comments.json" ]; then

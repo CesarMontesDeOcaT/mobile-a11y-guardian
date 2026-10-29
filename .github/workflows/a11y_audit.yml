@@ -51,6 +51,8 @@ jobs:
       - name: Run A11y Audit with Gemini
         if: steps.filter_files.outputs.has_files == 'true'
         env:
+          A11Y_PROVIDER: 'groq' # Change 'gemini' when you want to switch
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           # Inicializa el array de comentarios vacío

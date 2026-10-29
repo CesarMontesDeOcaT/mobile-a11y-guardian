@@ -1,9 +1,8 @@
 import json
-import logging
 import typer
 from pathlib import Path
 from a11y_guardian.parsers.compose import ComposeParser
-from a11y_guardian.agent.auditor_gemini import GeminiA11yAuditor
+from a11y_guardian.agent.factory import AuditorFactory
 
 app = typer.Typer(help="Mobile A11y Guardian CLI")
 
@@ -12,8 +11,6 @@ def audit(
         file_path: Path = typer.Argument(..., help="Ruta al archivo .kt a auditar"),
         json_output: Path = typer.Option(None, "--json-output", help="Ruta para volcar el resultado JSON")
 ):
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-
     if not file_path.exists():
         typer.secho(f"El archivo {file_path} no existe.", fg=typer.colors.RED)
         raise typer.Exit(1)
@@ -25,15 +22,15 @@ def audit(
     tree, distilled_code = parser.clean_and_extract(code)
     tree.file_path = str(file_path)
 
-    # 2. Short-circuit: Si no hay elementos de UI que auditar, no llamamos a Gemini
+    # 2. Short-circuit: Si no hay elementos de UI que auditar, omitir llamadas a APIs
     if not tree.root_nodes:
-        typer.echo(f"Sin contenedores interactivos en {file_path.name}. Omitiendo llamada a IA.")
+        typer.echo(f"Sin elementos analizables en {file_path.name}. Omitiendo llamada a IA.")
         if json_output:
             json_output.write_text("[]", encoding="utf-8")
         return
 
-    # 3. Enviar estructura Python + código limpio
-    auditor = GeminiA11yAuditor()
+    # 3. Auditoría polimórfica (resuelve Groq o Gemini según A11Y_PROVIDER)
+    auditor = AuditorFactory.create()
     result = auditor.audit_screen(tree, distilled_code)
 
     if result.skipped:

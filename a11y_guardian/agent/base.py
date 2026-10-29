@@ -26,7 +26,7 @@ class BaseA11yAuditor(ABC):
         self.system_instruction = f"{skill_content}\n{wcag_content}".strip()
 
     def build_user_prompt(self, tree: ScreenSemanticTree, distilled_code: str) -> str:
-        """Construye un payload estructurado uniforme para cualquier LLM."""
+        """Construye un payload estructurado uniforme reforzando el JSON Schema."""
         code_fence = "```"
         return (
             f"Estructura de nodos detectada (IR):\n"
@@ -36,6 +36,18 @@ class BaseA11yAuditor(ABC):
             f"Código relevante numerado:\n"
             f"{code_fence}text\n"
             f"{distilled_code}\n"
+            f"{code_fence}\n\n"
+            f"IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON usando esta estructura exacta:\n"
+            f"{code_fence}json\n"
+            f"{{\n"
+            f'  "suggestions": [\n'
+            f"    {{\n"
+            f'      "line": <numero_de_linea_a_reemplazar_int>,\n'
+            f'      "issue": "<explicacion_del_problema_en_una_oracion>",\n'
+            f'      "suggested_code": "<codigo_kotlin_de_reemplazo_con_indentacion_para_github>"\n'
+            f"    }}\n"
+            f"  ]\n"
+            f"}}\n"
             f"{code_fence}"
         )
 

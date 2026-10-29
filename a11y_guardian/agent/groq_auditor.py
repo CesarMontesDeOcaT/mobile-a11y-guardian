@@ -20,7 +20,7 @@ class GroqA11yAuditor(BaseA11yAuditor):
             base_url="https://api.groq.com/openai/v1",
             api_key=api_key
         )
-        self.model_name = model_name or os.environ.get("GROQ_MODEL", "meta-llama/llama-prompt-guard-2-86m")
+        self.model_name = model_name or os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
 
     def audit_screen(self, tree: ScreenSemanticTree, distilled_code: str) -> A11yAuditResult:
         if "// a11y-ignore: all" in distilled_code:
@@ -37,6 +37,8 @@ class GroqA11yAuditor(BaseA11yAuditor):
                     {"role": "user", "content": user_content}
                 ],
                 temperature=0.0,
+                # Imprescindible en Groq Free Tier para no saturar el TPM:
+                max_tokens=1500,
                 response_format={"type": "json_object"}
             )
 
@@ -44,5 +46,5 @@ class GroqA11yAuditor(BaseA11yAuditor):
             return A11yAuditResult.model_validate_json(raw_json)
 
         except Exception as e:
-            print(f"[ERROR Groq] Error al auditar: {str(e)}")
+            print(f"[ERROR Groq] Error al auditar con modelo {self.model_name}: {str(e)}")
             return A11yAuditResult(skipped=False, suggestions=[])

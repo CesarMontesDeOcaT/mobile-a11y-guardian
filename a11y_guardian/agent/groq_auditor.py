@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Optional
 from openai import OpenAI
@@ -5,6 +6,8 @@ from openai import OpenAI
 from a11y_guardian.ir import ScreenSemanticTree
 from a11y_guardian.agent.base import BaseA11yAuditor
 from a11y_guardian.agent.schemas import A11yAuditResult
+
+logger = logging.getLogger(__name__)
 
 class GroqA11yAuditor(BaseA11yAuditor):
     def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
@@ -25,6 +28,7 @@ class GroqA11yAuditor(BaseA11yAuditor):
 
         user_content = self.build_user_prompt(tree, distilled_code)
 
+        logger.info("Código numerado enviado a GROQ:\n%s", user_content)
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,

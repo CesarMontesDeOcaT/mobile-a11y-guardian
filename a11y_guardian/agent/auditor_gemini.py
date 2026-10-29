@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from pathlib import Path
@@ -5,6 +6,8 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # 1. Esquemas de salida estructurada (Pydantic)
@@ -34,6 +37,14 @@ class A11yAuditResult(BaseModel):
 # ---------------------------------------------------------------------------
 # 2. Orquestador del Auditor con Gemini
 # ---------------------------------------------------------------------------
+# class ClaudeA11yAuditor:
+#     def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
+#         api_key = api_key or os.environ.get("CLAUDE_API_KEY")
+#         if not api_key:
+#             raise ValueError(
+#                 "No se encontró CLAUDE_API_KEY. Configúrala en tu entorno o en los Secrets de GitHub."
+#             )
+
 
 class GeminiA11yAuditor:
     def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
@@ -68,7 +79,6 @@ class GeminiA11yAuditor:
         if "// a11y-ignore: all" in numbered_code:
             return A11yAuditResult(skipped=True, suggestions=[])
 
-        # Construcción segura del string sin triple comillas anidadas con markdown
         code_fence = "```"
         user_content = (
             "Analiza el siguiente código fuente numerado y genera sugerencias inline para corregir los problemas de merge de accesibilidad:\n\n"
@@ -85,6 +95,7 @@ class GeminiA11yAuditor:
         )
 
         try:
+            logger.info("Código numerado enviado a Gemini:\n%s", numbered_code)
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=user_content,

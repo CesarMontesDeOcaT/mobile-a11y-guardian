@@ -1,4 +1,5 @@
 import json
+import logging
 import typer
 from pathlib import Path
 from a11y_guardian.parsers.compose import ComposeParser
@@ -11,6 +12,8 @@ def audit(
     file_path: Path = typer.Argument(..., help="Ruta al archivo .kt o .swift a auditar"),
     json_output: Path = typer.Option(None, "--json-output", help="Ruta para volcar el resultado JSON para GitHub Actions")
 ):
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
     if not file_path.exists():
         typer.secho(f"El archivo {file_path} no existe.", fg=typer.colors.RED)
         raise typer.Exit(1)

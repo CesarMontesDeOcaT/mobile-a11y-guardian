@@ -1,11 +1,13 @@
 import logging
 import os
 import re
+import time
 from pathlib import Path
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
+from google.genai.errors import APIError
 from a11y_guardian.ir import ScreenSemanticTree
 
 logger = logging.getLogger(__name__)
@@ -44,7 +46,8 @@ class GeminiA11yAuditor:
 
         self.system_instruction = f"{skill_content}\n{wcag_content}".strip()
 
-    def audit_screen(self, tree: ScreenSemanticTree, distilled_code: str) -> A11yAuditResult:
+    def audit_screen(self, tree: ScreenSemanticTree, distilled_code: str, max_retries: int = 4,
+                     initial_delay: float = 3.0) -> A11yAuditResult:
         if "// a11y-ignore: all" in distilled_code:
             return A11yAuditResult(skipped=True, suggestions=[])
 
@@ -68,18 +71,32 @@ class GeminiA11yAuditor:
             response_schema=A11yAuditResult,
         )
 
-        try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=user_content,
-                config=config,
-            )
+        delay = initial_delay
 
-            if hasattr(response, "parsed") and response.parsed is not None:
-                return response.parsed
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=user_content,
+                    config=config,
+                )
 
-            return A11yAuditResult.model_validate_json(response.text)
+                if hasattr(response, "parsed") and response.parsed is not None:
+                    return response.parsed
 
-        except Exception as e:
-            print(f"[ERROR] Error al auditar con Gemini: {str(e)}")
-            return A11yAuditResult(skipped=False, suggestions=[])
+                return A11yAuditResult.model_validate_json(response.text)
+
+            except APIError as e:
+                # Interceptar picos de demanda (503) o límites de cuota (429)
+                if e.code in [503, 429] and attempt < max_retries:
+                    print(f"[RETRY] Servidor ocupado ({e.code}). Reintentando en {delay:.1f}s (Intento {attempt}/{max_retries})...")
+                    time.sleep(delay)
+                    delay *= 2  # Backoff exponencial (ej. 3s -> 6s -> 12s)
+                else:
+                    print(f"[ERROR] Falló la llamada a Gemini tras {attempt} intentos: {e.message}")
+                    return A11yAuditResult(skipped=False, suggestions=[])
+            except Exception as e:
+                print(f"[ERROR] Error inesperado en auditoría: {str(e)}")
+                return A11yAuditResult(skipped=False, suggestions=[])
+
+        return A11yAuditResult(skipped=False, suggestions=[])

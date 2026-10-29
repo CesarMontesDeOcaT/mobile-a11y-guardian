@@ -17,10 +17,10 @@ class GroqA11yAuditor(BaseA11yAuditor):
             raise ValueError("Falta GROQ_API_KEY en las variables de entorno.")
 
         self.client = OpenAI(
-            base_url="[https://api.groq.com/openai/v1](https://api.groq.com/openai/v1)",
+            base_url="https://api.groq.com/openai/v1",
             api_key=api_key
         )
-        self.model_name = model_name or os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self.model_name = model_name or os.environ.get("GROQ_MODEL", "meta-llama/llama-prompt-guard-2-86m")
 
     def audit_screen(self, tree: ScreenSemanticTree, distilled_code: str) -> A11yAuditResult:
         if "// a11y-ignore: all" in distilled_code:

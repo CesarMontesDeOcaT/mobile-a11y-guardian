@@ -92,7 +92,19 @@ fun PokedexDetails(
     val pokemonInfo by detailsViewModel.pokemonInfo.collectAsStateWithLifecycle()
 
     with(sharedTransitionScope) {
-        Column(
+Column(
+    modifier = Modifier
+        .fillMaxSize()
+        .sharedBounds(
+            sharedContentState = rememberSharedContentState(key = "pokemon-${pokemon.name}"),
+            animatedVisibilityScope = animatedContentScope,
+        )
+        .background(PokedexTheme.colors.background)
+        .verticalScroll(rememberScrollState())
+        .semantics(mergeDescendants = true)
+        .testTag("PokedexDetails"),
+) {
+
             modifier = Modifier
                 .fillMaxSize()
                 .sharedBounds(

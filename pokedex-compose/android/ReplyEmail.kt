@@ -15,6 +15,15 @@ fun ReplyEmailListItem(
                 onClick = { navigateToDetail(email.id) },
                 onLongClick = { toggleSelection(email.id) },
             )
+            .clip(CardDefaults.shape)
+            .semantics(mergeDescendants = true),
+        modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(CardDefaults.shape)
+            .combinedClickable(
+                onClick = { navigateToDetail(email.id) },
+                onLongClick = { toggleSelection(email.id) },
+            )
             .clip(CardDefaults.shape),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer

@@ -37,14 +37,18 @@ class BaseA11yAuditor(ABC):
             f"{code_fence}text\n"
             f"{distilled_code}\n"
             f"{code_fence}\n\n"
-            f"IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON usando esta estructura exacta:\n"
+            f"INSTRUCCIONES DE SALIDA:\n"
+            f"1. Responde ÚNICAMENTE con un JSON válido usando el esquema exacto indicado abajo.\n"
+            f"2. En 'suggested_code', incluye SOLO la cabecera del contenedor con Modifier.semantics(mergeDescendants = true). NO reescribas los hijos ni el cuerpo interno.\n"
+            f"3. Asegúrate de escapar cualquier comilla doble interna con \\\" para no romper el formato JSON.\n\n"
+            f"Esquema JSON obligatorio:\n"
             f"{code_fence}json\n"
             f"{{\n"
             f'  "suggestions": [\n'
             f"    {{\n"
-            f'      "line": <numero_de_linea_a_reemplazar_int>,\n'
-            f'      "issue": "<explicacion_del_problema_en_una_oracion>",\n'
-            f'      "suggested_code": "<codigo_kotlin_de_reemplazo_con_indentacion_para_github>"\n'
+            f'      "line": <numero_de_linea_int>,\n'
+            f'      "issue": "<explicacion_breve_en_una_oracion>",\n'
+            f'      "suggested_code": "<solo_cabecera_del_componente_con_merge_y_su_indentacion>"\n'
             f"    }}\n"
             f"  ]\n"
             f"}}\n"

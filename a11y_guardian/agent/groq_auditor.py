@@ -24,7 +24,7 @@ class GroqA11yAuditor(BaseA11yAuditor):
 
     def audit_screen(self, tree: ScreenSemanticTree, distilled_code: str) -> A11yAuditResult:
         if "// a11y-ignore: all" in distilled_code:
-            print("[DEBUG Groq] Directiva // a11y-ignore: all detectada. Saltando análisis.")
+            print("[DEBUG Groq] Directiva // a11y-ignore detectada. Saltando análisis.")
             return A11yAuditResult(skipped=True, suggestions=[])
 
         user_content = self.build_user_prompt(tree, distilled_code)
@@ -38,7 +38,7 @@ class GroqA11yAuditor(BaseA11yAuditor):
                     {"role": "user", "content": user_content}
                 ],
                 temperature=0.0,
-                max_tokens=1500,
+                max_tokens=2500,  # Aumentado para evitar truncamiento
                 response_format={"type": "json_object"}
             )
 
@@ -48,21 +48,19 @@ class GroqA11yAuditor(BaseA11yAuditor):
             print("====================================================================\n")
 
             if not raw_json or raw_json.strip() == "{}":
-                print("[WARN Groq] El modelo devolvió un JSON vacío o sin contenido.")
                 return A11yAuditResult(skipped=False, suggestions=[])
 
-            # Intentar validación estricta con Pydantic
-            try:
-                parsed_result = A11yAuditResult.model_validate_json(raw_json)
-                print(f"[DEBUG Groq] Parseo exitoso. Total sugerencias identificadas: {len(parsed_result.suggestions)}")
-                return parsed_result
-            except ValidationError as ve:
-                print(f"[ERROR Groq] Falló la validación del esquema Pydantic:\n{ve}")
-                # Fallback: intentar ver si metió las sugerencias bajo otra clave
-                data = json.loads(raw_json)
-                print(f"[DEBUG Groq] Claves recibidas en el objeto JSON: {list(data.keys())}")
-                return A11yAuditResult(skipped=False, suggestions=[])
+            parsed_result = A11yAuditResult.model_validate_json(raw_json)
+            print(f"[DEBUG Groq] Parseo exitoso. Total sugerencias identificadas: {len(parsed_result.suggestions)}")
+            return parsed_result
 
         except Exception as e:
             print(f"[ERROR Groq] Excepción durante la llamada a la API: {type(e).__name__} - {str(e)}")
+            # Si Groq adjunta el fragmento de generación que falló, lo imprimimos en consola
+            if hasattr(e, "response") and hasattr(e.response, "json"):
+                try:
+                    err_data = e.response.json()
+                    print(f"[DEBUG Groq Failed Generation]: {err_data.get('error', {}).get('failed_generation')}")
+                except Exception:
+                    pass
             return A11yAuditResult(skipped=False, suggestions=[])

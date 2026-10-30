@@ -96,7 +96,36 @@ jobs:
             const pull_number = context.payload.pull_request.number;
             const commit_id = context.payload.pull_request.head.sha;
 
+            // 1. Obtener todos los comentarios inline ya existentes en el PR
+            const existingReviewComments = await github.paginate(
+              github.rest.pulls.listReviewComments,
+              { owner, repo, pull_number }
+            );
+
+            // 2. Obtener todos los comentarios generales ya existentes en el PR (fallback)
+            const existingIssueComments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number: pull_number }
+            );
+
             for (const comment of comments) {
+              // Verificar si ya existe un comentario inline en la misma ruta y línea con la cabecera A11y
+              const isInlineDuplicate = existingReviewComments.some(c => 
+                c.path === comment.path && 
+                c.line === comment.line && 
+                c.body.includes("A11y: Fragmentación de lectura")
+              );
+
+              // Verificar si ya existe como comentario general
+              const isGeneralDuplicate = existingIssueComments.some(c => 
+                c.body.includes(`\`${comment.path}\` (Línea ${comment.line})`)
+              );
+
+              if (isInlineDuplicate || isGeneralDuplicate) {
+                console.log(`[SKIP] Comentario ya existente para ${comment.path}:${comment.line}. Omitiendo duplicado.`);
+                continue;
+              }
+
               try {
                 // Intento 1: Inline Review Comment directo sobre la línea en el Diff
                 await github.rest.pulls.createReviewComment({
@@ -110,9 +139,8 @@ jobs:
                 });
                 console.log(`Comentario inline publicado en ${comment.path}:${comment.line}`);
               } catch (error) {
-                // Fallback: Si la línea no forma parte del diff directo (error 422 de GitHub)
                 console.warn(`Línea ${comment.line} fuera del diff para ${comment.path}. Publicando como comentario general en el PR.`);
-            
+
                 await github.rest.issues.createComment({
                   owner: owner,
                   repo: repo,

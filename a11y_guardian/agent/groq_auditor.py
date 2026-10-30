@@ -19,7 +19,7 @@ class GroqA11yAuditor(BaseA11yAuditor):
             base_url="https://api.groq.com/openai/v1",
             api_key=api_key
         )
-        self.model_name = model_name or os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
+        self.model_name = model_name or os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b")
         print(f"[DEBUG Groq] Inicializado auditor con modelo: {self.model_name}")
 
     def audit_screen(self, tree: ScreenSemanticTree, distilled_code: str) -> A11yAuditResult:

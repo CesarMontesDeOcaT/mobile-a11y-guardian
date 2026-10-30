@@ -26,7 +26,6 @@ class BaseA11yAuditor(ABC):
         self.system_instruction = f"{skill_content}\n{wcag_content}".strip()
 
     def build_user_prompt(self, tree: ScreenSemanticTree, distilled_code: str) -> str:
-        """Construye un payload estructurado uniforme reforzando el JSON Schema."""
         code_fence = "```"
         return (
             f"Estructura de nodos detectada (IR):\n"
@@ -37,22 +36,13 @@ class BaseA11yAuditor(ABC):
             f"{code_fence}text\n"
             f"{distilled_code}\n"
             f"{code_fence}\n\n"
-            f"INSTRUCCIONES DE SALIDA:\n"
-            f"1. Responde ÚNICAMENTE con un JSON válido usando el esquema exacto indicado abajo.\n"
-            f"2. En 'suggested_code', incluye SOLO la cabecera del contenedor con Modifier.semantics(mergeDescendants = true). NO reescribas los hijos ni el cuerpo interno.\n"
-            f"3. Asegúrate de escapar cualquier comilla doble interna con \\\" para no romper el formato JSON.\n\n"
-            f"Esquema JSON obligatorio:\n"
-            f"{code_fence}json\n"
-            f"{{\n"
-            f'  "suggestions": [\n'
-            f"    {{\n"
-            f'      "line": <numero_de_linea_int>,\n'
-            f'      "issue": "<explicacion_breve_en_una_oracion>",\n'
-            f'      "suggested_code": "<solo_cabecera_del_componente_con_merge_y_su_indentacion>"\n'
-            f"    }}\n"
-            f"  ]\n"
-            f"}}\n"
-            f"{code_fence}"
+            "REGLAS ESTRICTAS DE RESPUESTA:\n"
+            "- Tu respuesta DEBE comenzar inmediatamente con '{' y terminar con '}'.\n"
+            "- NO uses bloques de código markdown (prohibido usar ```json o ```).\n"
+            "- NO incluyas introducciones, preámbulos ni explicaciones fuera del JSON.\n"
+            "- En 'suggested_code', incluye ÚNICAMENTE la cabecera del contenedor con Modifier.semantics(mergeDescendants = true). NO reescribas los componentes hijos.\n"
+            "- Escapa cualquier comilla doble interna con \\\" dentro de los strings.\n\n"
+            'Estructura requerida: {"suggestions": [{"line": <int>, "issue": "<string>", "suggested_code": "<string>"}]}'
         )
 
     @abstractmethod

@@ -104,17 +104,6 @@ fun PokedexDetails(
                 .testTag("PokedexDetails"),
         ) {
 
-            modifier = Modifier
-                .fillMaxSize()
-                .sharedBounds(
-                    sharedContentState = rememberSharedContentState(key = "pokemon-${pokemon.name}"),
-                    animatedVisibilityScope = animatedContentScope,
-                )
-                .background(PokedexTheme.colors.background)
-                .verticalScroll(rememberScrollState())
-                .testTag("PokedexDetails"),
-        ) {
-
             var palette by rememberPaletteState()
             val backgroundBrush by palette.paletteBackgroundBrush()
 

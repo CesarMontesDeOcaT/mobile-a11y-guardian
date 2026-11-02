@@ -10,11 +10,11 @@ class InlineSuggestion(BaseModel):
     @classmethod
     def normalize_suggestion(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            # Acepta line o line_number
+            # Accept line or line_number
             line = data.get("line") or data.get("line_number") or 0
-            # Acepta issue, description o criterion
+            # Accept issue, description or criterion
             issue = data.get("issue") or data.get("description") or data.get("criterion") or ""
-            # Acepta suggested_code o recommendation
+            # Accept suggested_code or recommendation
             code = data.get("suggested_code") or data.get("recommendation") or ""
 
             return {
@@ -32,7 +32,7 @@ class A11yAuditResult(BaseModel):
     @classmethod
     def normalize_root(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            # Captura 'suggestions', 'violations' o 'issues'
+            # Capture 'suggestions', 'violations' or 'issues'
             items = (
                     data.get("suggestions")
                     or data.get("violations")

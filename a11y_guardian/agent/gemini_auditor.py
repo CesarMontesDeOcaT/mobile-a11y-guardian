@@ -17,7 +17,7 @@ class GeminiA11yAuditor(BaseA11yAuditor):
         super().__init__()
         api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            raise ValueError("Falta GEMINI_API_KEY en las variables de entorno.")
+            raise ValueError("Not GEMINI_API_KEY found in environment variables.")
 
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name or os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
@@ -33,7 +33,7 @@ class GeminiA11yAuditor(BaseA11yAuditor):
             return A11yAuditResult(skipped=True, suggestions=[])
 
         user_content = self.build_user_prompt(tree, distilled_code)
-        logger.info("Código numerado enviado a Gemini:\n%s", user_content)
+        logger.info("Numbered code sent to Gemini:\n%s", user_content)
         config = types.GenerateContentConfig(
             system_instruction=self.system_instruction,
             temperature=0.0,
@@ -58,14 +58,14 @@ class GeminiA11yAuditor(BaseA11yAuditor):
 
             except APIError as e:
                 if e.code in [503, 429] and attempt < max_retries:
-                    print(f"[RETRY Gemini] Servidor ocupado ({e.code}). Reintentando en {delay:.1f}s (Intento {attempt}/{max_retries})...")
+                    print(f"[RETRY Gemini]  Server busy ({e.code}). Retrying in {delay:.1f}s (Attempt {attempt}/{max_retries})...")
                     time.sleep(delay)
                     delay *= 2
                 else:
-                    print(f"[ERROR Gemini] Falló la auditoría tras {attempt} intentos: {e.message}")
+                    print(f"[ERROR Gemini] Audit failed after {attempt} attempts: {e.message}")
                     return A11yAuditResult(skipped=False, suggestions=[])
             except Exception as e:
-                print(f"[ERROR Gemini] Error inesperado: {str(e)}")
+                print(f"[ERROR Gemini] Unexpected error: {str(e)}")
                 return A11yAuditResult(skipped=False, suggestions=[])
 
         return A11yAuditResult(skipped=False, suggestions=[])

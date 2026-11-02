@@ -9,44 +9,43 @@ app = typer.Typer(help="Mobile A11y Guardian CLI")
 
 def align_indentation(suggested_code: str, original_line: str) -> str:
     """
-    Ajusta el código sugerido para que coincida exactamente con la
-    indentación base de la línea original en el archivo fuente.
+    Adjusts the suggested code to match the exact base indentation of the original line in the source file.
     """
-    # 1. Detectar cuántos espacios iniciales tiene la línea en el código original
+    # 1. Detect how many leading spaces the original line has
     leading_spaces = len(original_line) - len(original_line.lstrip(" "))
     target_indent = " " * leading_spaces
 
-    # 2. Normalizar el bloque del LLM a indentación 0 (elimina sangrías inconsistentes)
+    # 2. Normalize the LLM block to indentation 0 (remove inconsistent indents)
     dedented = textwrap.dedent(suggested_code).strip("\r\n")
 
-    # 3. Re-sangrar cada línea con los espacios exactos del archivo original
+    # 3. Re-indent each line with the exact spaces from the original file
     return textwrap.indent(dedented, target_indent)
 
 @app.command()
 def audit(
-        file_path: Path = typer.Argument(..., help="Ruta al archivo .kt a auditar"),
-        json_output: Path = typer.Option(None, "--json-output", help="Ruta para volcar el resultado JSON")
+        file_path: Path = typer.Argument(..., help="Path to the .kt file to audit"),
+        json_output: Path = typer.Option(None, "--json-output", help="Path to dump the JSON result")
 ):
     if not file_path.exists():
-        typer.secho(f"El archivo {file_path} no existe.", fg=typer.colors.RED)
+        typer.secho(f"The file {file_path} does not exist.", fg=typer.colors.RED)
         raise typer.Exit(1)
 
     code = file_path.read_text(encoding="utf-8")
     code_lines = code.splitlines()
 
-    # 1. Poda local y extracción del Árbol Semántico (IR)
+    # 1. Local pruning and extraction of the Semantic Tree (IR)
     parser = ComposeParser()
     tree, distilled_code = parser.clean_and_extract(code)
     tree.file_path = str(file_path)
 
-    # 2. Short-circuit: Si no hay elementos de UI, omitir llamadas a IA
+    # 2. Short-circuit: If there are no UI elements, skip AI calls
     if not tree.root_nodes:
-        typer.echo(f"Sin elementos analizables en {file_path.name}. Omitiendo llamada a IA.")
+        typer.echo(f"No analyzable elements in {file_path.name}. Skipping AI call.")
         if json_output:
             json_output.write_text("[]", encoding="utf-8")
         return
 
-    # 3. Auditoría polimórfica (Groq / Gemini)
+    # 3. Polymorphic auditing (Groq / Gemini)
     auditor = AuditorFactory.create()
     result = auditor.audit_screen(tree, distilled_code)
 
@@ -57,7 +56,7 @@ def audit(
 
     comments = []
     for item in result.suggestions:
-        # Obtener la línea de código original para calcular su sangría
+        # Get the original code line to calculate its indentation
         if 1 <= item.line <= len(code_lines):
             orig_line = code_lines[item.line - 1]
             aligned_code = align_indentation(item.suggested_code, orig_line)
@@ -65,8 +64,8 @@ def audit(
             aligned_code = item.suggested_code
 
         body = (
-            f"### ♿ A11y: Fragmentación de lectura en TalkBack\n\n"
-            f"**Problema:** {item.issue}\n\n"
+            f"### ♿ A11y: Fragmentation of reading in TalkBack\n\n"
+            f"**Problem:** {item.issue}\n\n"
             f"```suggestion\n"
             f"{aligned_code}\n"
             f"```"

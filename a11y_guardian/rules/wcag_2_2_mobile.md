@@ -1,15 +1,15 @@
 # Mobile Accessibility - WCAG 2.2 AA (Focus & Traversal)
 
-Este documento define las reglas normativas de accesibilidad móvil aplicables a la orquestación de lectores de pantalla (TalkBack/VoiceOver).
+This document defines the normative mobile accessibility rules applicable to screen reader orchestration (TalkBack/VoiceOver).
 
-## WCAG 2.4.3: Focus Order (Orden del Foco)
-**Definición oficial:** Si una página o pantalla puede ser navegada secuencialmente y la secuencia de navegación afecta su significado o su operación, los componentes enfocables reciben el foco en un orden que preserva el significado y la operabilidad.
+## WCAG 2.4.3: Focus Order
+**Official Definition:** If a web page or screen can be navigated sequentially and the navigation sequences affect meaning or operation, focusable components receive focus in an order that preserves meaning and operability.
 
-**Aplicación en Jetpack Compose (Layout Traversal):**
-*   **El Problema (Fragmentación):** Los lectores de pantalla en móviles leen la pantalla mediante deslizamientos (swipes). Si un contenedor lógico (como una tarjeta de producto, un elemento de lista o una fila de perfil de usuario) está compuesto por múltiples textos e iconos, TalkBack atrapará al usuario obligándolo a hacer múltiples swipes para leer información que debería ser un solo bloque. Esto viola el orden de foco lógico y frustra al usuario.
-*   **La Solución (Merge Semantics):** Los componentes visuales que actúan como una unidad semántica o de interacción única **DEBEN** agrupar a sus hijos semánticos. En Compose, esto se logra aplicando `Modifier.semantics(mergeDescendants = true)` al contenedor padre (`Card`, `Row`, `Column`).
+**Application in Jetpack Compose (Layout Traversal):**
+*   **The Problem (Fragmentation):** Mobile screen readers navigate the screen via swipe gestures. If a logical container (such as a product card, a list item, or a user profile row) is composed of multiple texts and icons, TalkBack traps the user by forcing them to make multiple swipes to read information that should be presented as a single block. This violates the logical focus order and frustrates the user.
+*   **The Solution (Merge Semantics):** Visual components that act as a single semantic or interactive unit **MUST** group their semantic children. In Compose, this is achieved by applying `Modifier.semantics(mergeDescendants = true)` to the parent container (`Card`, `Row`, `Column`).
 
-## Reglas de Evaluación para la IA
-1.  **Unidad Lógica:** Si los textos dentro de un layout no tienen sentido útil por sí solos de forma aislada, o si obligan a un sobreesfuerzo de swipes, deben unificarse.
-2.  **Clicabilidad:** Si un contenedor padre es interactivo (`clickable`, `combinedClickable`, `toggleable`), sus hijos legibles internos deben estar fusionados para que el anuncio de la acción englobe el contexto del contenido.
-3.  **Justificación de Hallazgos:** Cada vez que detectes un contenedor fragmentado, clasifícalo como una violación del **criterio WCAG 2.4.3 (Focus Order)** en tu reporte.
+## Evaluation Rules for the AI
+1.  **Logical Unit:** If the texts within a layout do not make sense on their own in isolation, or if they force an excessive cognitive and physical effort (too many swipes), they must be merged.
+2.  **Clickability:** If a parent container is interactive (`clickable`, `combinedClickable`, `toggleable`), its readable inner children must be merged so that the action announcement encompasses the content's context.
+3.  **Findings Justification:** Whenever you detect a fragmented container, classify it as a violation of **WCAG criteria 2.4.3 (Focus Order)** in your report.

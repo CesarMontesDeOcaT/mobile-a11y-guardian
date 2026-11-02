@@ -5,7 +5,7 @@ from a11y_guardian.agent.gemini_auditor import GeminiA11yAuditor
 from a11y_guardian.agent.groq_auditor import GroqA11yAuditor
 
 class AuditorFactory:
-    """Factory para desacoplar el motor de IA del resto de la aplicación."""
+    """ Factory to decouple the AI engine from the rest of the application."""
 
     @staticmethod
     def create(provider: Optional[str] = None) -> BaseA11yAuditor:
@@ -17,5 +17,5 @@ class AuditorFactory:
             return GroqA11yAuditor()
         else:
             raise ValueError(
-                f"Proveedor de IA '{selected}' no soportado. Opciones disponibles: 'groq', 'gemini'."
+                f"AI provider '{selected}' not supported. Available options: 'groq', 'gemini'."
             )

@@ -3,7 +3,7 @@ from typing import List, Tuple
 from a11y_guardian.ir import UINode, ScreenSemanticTree
 
 class ComposeParser:
-    """Extractor semántico y podador de ruido para Jetpack Compose."""
+    """Extractor and noise pruner for Jetpack Compose."""
 
     def clean_and_extract(self, source_code: str) -> Tuple[ScreenSemanticTree, str]:
         lines = source_code.splitlines()
@@ -18,7 +18,7 @@ class ComposeParser:
         for idx, line in enumerate(lines, start=1):
             line_strip = line.strip()
 
-            # 1. Ignorar comentarios en bloque (licencias de copyright al inicio)
+            # 1. Ignore block comments (copyright licenses at the beginning)
             if line_strip.startswith("/*"):
                 in_block_comment = True
             if in_block_comment:
@@ -26,24 +26,24 @@ class ComposeParser:
                     in_block_comment = False
                 continue
 
-            # 2. Ignorar imports, packages y líneas vacías de cabecera
+            # 2. Ignore imports, packages, and empty header lines
             if line_strip.startswith("import ") or line_strip.startswith("package "):
                 continue
 
-            # 3. Detectar si entramos en un bloque Preview
+            # 3. Detect if we enter a Preview block
             if "@Preview" in line_strip:
                 in_preview = True
                 continue
 
-            # Si estamos en preview, omitir hasta que termine la función
+            # If we are in preview, skip until the function ends
             if in_preview:
-                # Si encontramos un Composable que NO tiene "Preview" en su nombre, salimos del preview
+                # If we find a Composable that does NOT have "Preview" in its name, we exit the preview
                 if "fun " in line_strip and "Preview" not in line_strip:
                     in_preview = False
                 else:
                     continue
 
-            # 4. Capturar el nombre real del Composable (soporta @Composable en línea separada)
+            # 4. Capture the real name of the Composable (supports @Composable on a separate line)
             if line_strip.startswith("@Composable"):
                 saw_composable_annotation = True
                 continue
@@ -54,10 +54,10 @@ class ComposeParser:
                     if match and composable_name == "UnknownComposable" and "Preview" not in match.group(1):
                         composable_name = match.group(1)
                     saw_composable_annotation = False
-                elif not line_strip.startswith("@"):  # Si no es otra anotación intermedia
+                elif not line_strip.startswith("@"):  # If it's not another intermediate annotation
                     saw_composable_annotation = False
 
-            # 5. Extraer nodos para el árbol semántico
+            # 5. Extract nodes for the semantic tree
             if any(k in line_strip for k in ["Card(", "Row(", "Column(", "ListItem(", "PokemonCard("]):
                 has_merge = "mergeDescendants = true" in source_code
                 nodes.append(UINode(
@@ -83,7 +83,7 @@ class ComposeParser:
                     line_number=idx
                 ))
 
-            # Solo agregar líneas relevantes
+            # Only add relevant lines
             if line_strip:
                 cleaned_lines.append(f"{idx}: {line}")
 

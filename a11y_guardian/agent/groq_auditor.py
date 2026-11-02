@@ -1,5 +1,4 @@
 import os
-import json
 from typing import Optional
 from openai import OpenAI
 from pydantic import ValidationError
@@ -13,24 +12,24 @@ class GroqA11yAuditor(BaseA11yAuditor):
         super().__init__()
         api_key = api_key or os.environ.get("GROQ_API_KEY")
         if not api_key:
-            raise ValueError("Falta GROQ_API_KEY en las variables de entorno.")
+            raise ValueError("No GROQ_API_KEY found in environment variables.")
 
         self.client = OpenAI(
             base_url="https://api.groq.com/openai/v1",
             api_key=api_key
         )
         self.model_name = model_name or os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b")
-        print(f"[DEBUG Groq] Inicializado auditor con modelo: {self.model_name}")
+        print(f"[DEBUG Groq] Initialized auditor with model: {self.model_name}")
 
     def audit_screen(self, tree: ScreenSemanticTree, distilled_code: str) -> A11yAuditResult:
         if "// a11y-ignore: all" in distilled_code:
-            print("[DEBUG Groq] Directiva // a11y-ignore detectada. Saltando análisis.")
+            print("[DEBUG Groq] Directive // a11y-ignore detected. Skipping analysis.")
             return A11yAuditResult(skipped=True, suggestions=[])
 
         user_content = self.build_user_prompt(tree, distilled_code)
-        print(f"[DEBUG Groq] Contenido del prompt enviado a Groq:\n{user_content}")  # Debug: Mostrar el contenido del prompt enviado a Groq
+        print(f"[DEBUG Groq] Prompt content sent to Groq:\n{user_content}")
 
-        print(f"[DEBUG Groq] Enviando petición a Groq ({self.model_name})...")
+        print(f"[DEBUG Groq] Sending request to Groq ({self.model_name})...")
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
@@ -52,12 +51,12 @@ class GroqA11yAuditor(BaseA11yAuditor):
                 return A11yAuditResult(skipped=False, suggestions=[])
 
             parsed_result = A11yAuditResult.model_validate_json(raw_json)
-            print(f"[DEBUG Groq] Parseo exitoso. Total sugerencias identificadas: {len(parsed_result.suggestions)}")
+            print(f"[DEBUG Groq] Successful parsing. Total suggestions identified: {len(parsed_result.suggestions)}")
             return parsed_result
 
         except Exception as e:
-            print(f"[ERROR Groq] Excepción durante la llamada a la API: {type(e).__name__} - {str(e)}")
-            # Si Groq adjunta el fragmento de generación que falló, lo imprimimos en consola
+            print(f"[ERROR Groq] Exception during API call: {type(e).__name__} - {str(e)}")
+            # If Groq attaches the failed generation snippet, we print it to the console
             if hasattr(e, "response") and hasattr(e.response, "json"):
                 try:
                     err_data = e.response.json()

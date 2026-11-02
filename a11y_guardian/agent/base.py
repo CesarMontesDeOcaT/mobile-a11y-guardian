@@ -26,6 +26,10 @@ class BaseA11yAuditor(ABC):
         self.system_instruction = f"{skill_content}\n{wcag_content}".strip()
 
     def build_user_prompt(self, tree: ScreenSemanticTree, distilled_code: str) -> str:
+        """
+        Construye el prompt de usuario de forma genérica.
+        Python solo establece el protocolo de reemplazo de líneas de GitHub.
+        """
         code_fence = "```"
         return (
             f"Estructura de nodos detectada (IR):\n"
@@ -36,20 +40,12 @@ class BaseA11yAuditor(ABC):
             f"{code_fence}text\n"
             f"{distilled_code}\n"
             f"{code_fence}\n\n"
-            "REGLAS ESTRICTAS PARA 'suggested_code' (REEMPLAZO QUIRÚRGICO DE LÍNEA):\n"
-            "GitHub reemplaza ÚNICAMENTE la línea indicada en 'line'. Para no duplicar código existente:\n"
-            "1. Si el contenedor YA TIENE 'modifier = ...':\n"
-            "   - 'line' DEBE ser el número de línea exacto donde dice 'modifier = ...'.\n"
-            "   - 'suggested_code' DEBE ser ÚNICAMENTE esa línea con el encadenamiento '.semantics(mergeDescendants = true)'.\n"
-            "   - PROHIBIDO repetir las líneas siguientes (.padding, .clip, .clickable, etc.).\n"
-            "   Ejemplo:\n"
-            "     Línea original 11: '    modifier = modifier'\n"
-            "     suggested_code:    '    modifier = modifier.semantics(mergeDescendants = true)'\n\n"
-            "2. Si el contenedor NO TIENE modifier (ej. 'Row {' o 'Column {'):\n"
-            "   - 'line' es la línea del contenedor.\n"
-            "   - suggested_code: 'Row(modifier = Modifier.semantics(mergeDescendants = true)) {'\n\n"
-            "3. Tu respuesta DEBE ser un JSON válido que inicie con '{' y termine con '}'. Sin bloques markdown.\n\n"
-            'Estructura requerida: {"suggestions": [{"line": <int>, "issue": "<string>", "suggested_code": "<string>"}]}'
+            "MECÁNICA DE REEMPLAZO (GITHUB INLINE SUGGESTION):\n"
+            "- Cada elemento en 'suggestions' se ancla en 'line'.\n"
+            "- GitHub reemplazará ÚNICAMENTE esa línea por el contenido de 'suggested_code'.\n"
+            "- Para evitar duplicar código, 'suggested_code' no debe reescribir líneas adyacentes que deban permanecer intactas.\n\n"
+            "Responde con un JSON estricto que comience en '{' y termine en '}':\n"
+            '{"suggestions": [{"line": <int>, "issue": "<string>", "suggested_code": "<string>"}]}'
         )
 
     @abstractmethod

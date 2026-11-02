@@ -23,6 +23,41 @@ When a layout acts as a single logical item (like a list item, a user profile ro
 * **Trigger (Bad):** A `Card`, `Row`, or `Column` containing multiple readable elements that functions as a single grouped item, but lacks `Modifier.semantics(mergeDescendants = true)`.
 * **Fix (Good):** Add `.semantics(mergeDescendants = true)` strictly to the parent container's modifier chain without altering inner children or duplicating subsequent lines.
 
+## Remediation Strategy for Jetpack Compose Modifiers
+
+When generating `suggested_code` for a container:
+
+1. **Target Line Identification (`line`):**
+   - If the container already defines a modifier parameter (e.g., `modifier = modifier` or `modifier = Modifier`), set `line` to the exact line number where the modifier starts.
+   - If the container has NO modifier (e.g., `Row(` or `Column {`), set `line` to the container opening line.
+
+2. **Chaining Syntax (Preventing Duplication):**
+   - Jetpack Compose modifiers are chained expressions.
+   - When modifying an existing modifier line, append `.semantics(mergeDescendants = true)` directly to that line.
+   - DO NOT repeat or duplicate the subsequent chained modifiers (such as `.padding(...)`, `.fillMaxWidth()`, `.clip(...)`) that already exist on subsequent lines.
+
+   *Example A (Existing Modifier Chain):*
+   Original code:
+   ```kotlin
+   152: Row(
+   153:     modifier = Modifier
+   154:         .padding(12.dp)
+   155:         .statusBarsPadding(),
+   ```
+   Correct suggestion:
+   - `line`: 153
+   - `suggested_code`: "    modifier = Modifier.semantics(mergeDescendants = true)"
+     (Lines 154 and 155 will remain untouched in the file and chain naturally).
+
+   *Example B (No Existing Modifier):*
+   Original code:
+   ```kotlin
+   20: Row {
+   ```
+   Correct suggestion:
+   - `line`: 20
+   - `suggested_code`: "Row(modifier = Modifier.semantics(mergeDescendants = true)) {"
+
 ## Output Format
 
 You must output strictly a valid JSON object matching this schema:
@@ -42,10 +77,10 @@ You must output strictly a valid JSON object matching this schema:
 
 ## Few-Shot Examples
 
-### Example 1: Basic Profile Row
+### Example 1: Basic Profile Row (No initial modifier)
 
 **User Input:**
-```
+```text
 10: @Composable
 11: private fun PostMetadata(metadata: Metadata) {
 12:     Row() {
@@ -62,44 +97,37 @@ You must output strictly a valid JSON object matching this schema:
 ```
 
 **Your Response:**
-**Issue:** This `Row` contains multiple pieces of profile information; without merging semantics, TalkBack forces the user to swipe three separate times.
-
 ```json
 {
-    "skipped": false,
-    "suggestions": [
+  "skipped": false,
+  "suggestions": [
     {
-        "line": 12,
-        "issue": "This Row contains multiple profile text items; without mergeDescendants, TalkBack forces separate swipes instead of reading author and date together.",
-        "suggested_code": "    Row(modifier = Modifier.semantics(mergeDescendants = true) {}) {"
+      "line": 12,
+      "issue": "This Row contains multiple profile text items; without mergeDescendants, TalkBack forces separate swipes instead of reading author and date together.",
+      "suggested_code": "    Row(modifier = Modifier.semantics(mergeDescendants = true)) {"
     }
-    ]
+  ]
 }
 ```
 
-### Example 2: Clickable Card
+### Example 2: Clickable Card (Has existing modifier chain)
 
 **User Input:**
-```
+```text
 40: @Composable
-41: fun ReplyEmailListItem(
-...
-50: ) {
+41: fun ReplyEmailListItem(email: Email) {
 51:     Card(
 52:         modifier = modifier
 53:             .padding(horizontal = 16.dp, vertical = 4.dp)
 54:             .clip(CardDefaults.shape)
 55:             .combinedClickable(
-56:                 onClick = { navigateToDetail(email.id) },
-57:                 onLongClick = { toggleSelection(email.id) },
-58:             )
-59:             .clip(CardDefaults.shape),
-60:         colors = CardDefaults.cardColors(
+56:                 onClick = { navigateToDetail(email.id) }
+57:             ),
+60:         colors = CardDefaults.cardColors(...)
+61:     ) {
 ```
 
 **Your Response:**
-**Issue:** Because this `Card` is clickable but its text children are unmerged, TalkBack will read the internal elements separately from the card's click action.
-
 ```json
 {
     "skipped": false,
@@ -135,6 +163,7 @@ You must output strictly a valid JSON object matching this schema:
 **Your Response:**
 ```json
 {
+  "skipped": false,
   "suggestions": [
     {
       "line": 18,
@@ -144,5 +173,3 @@ You must output strictly a valid JSON object matching this schema:
   ]
 }
 ```
-
-

@@ -28,6 +28,7 @@ class GroqA11yAuditor(BaseA11yAuditor):
             return A11yAuditResult(skipped=True, suggestions=[])
 
         user_content = self.build_user_prompt(tree, distilled_code)
+        print(f"[DEBUG Groq] Contenido del prompt enviado a Groq:\n{user_content}")  # Debug: Mostrar el contenido del prompt enviado a Groq
 
         print(f"[DEBUG Groq] Enviando petición a Groq ({self.model_name})...")
         try:

@@ -8,22 +8,38 @@ class BaseA11yAuditor(ABC):
     """Interfaz base para todos los motores de auditoría con IA."""
 
     def __init__(self):
+        # 1. Definimos rutas robustas basadas en el módulo actual
+        # Asume que el directorio a11y_guardian/ está estructurado así:
+        # a11y_guardian/
+        # ├── agent/
+        # │   └── base.py
+        # ├── skills/
+        # │   └── compose_merge_semantics_skill_template_android.md
+        # └── rules/
+        #     └── wcag_2_2_mobile.md
+
         base_dir = Path(__file__).resolve().parent.parent
-        skill_path = base_dir / "skills" / "compose_merge_semantics.md"
+        skill_path = base_dir / "skills" / "compose_merge_semantics_skill_template_android.md"
         rules_path = base_dir / "rules" / "wcag_2_2_mobile.md"
 
-        skill_content = ""
-        if skill_path.exists():
-            raw_skill = skill_path.read_text(encoding="utf-8")
-            skill_content = re.sub(r"^---[\s\S]*?---\n", "", raw_skill)
-        else:
-            skill_content = "Auditor de accesibilidad móvil para TalkBack y Jetpack Compose."
+        # 2. Validación estricta. Falla si los archivos no existen en CI/CD
+        if not skill_path.exists():
+            raise FileNotFoundError(f"Falta el archivo crítico de la skill: {skill_path}")
+        if not rules_path.exists():
+            raise FileNotFoundError(f"Falta el archivo de reglas WCAG: {rules_path}")
 
-        wcag_content = ""
-        if rules_path.exists():
-            wcag_content = f"\n\nMarco de referencia:\n{rules_path.read_text(encoding='utf-8')}"
+        # 3. Lectura de contenido
+        raw_skill = skill_path.read_text(encoding="utf-8")
+        # Elimina el frontmatter (bloques de yaml entre ---)
+        skill_content = re.sub(r"^---[\s\S]*?---\n", "", raw_skill).strip()
 
-        self.system_instruction = f"{skill_content}\n{wcag_content}".strip()
+        wcag_content = f"\n\nMarco de referencia legal y técnico:\n{rules_path.read_text(encoding='utf-8')}".strip()
+
+        # 4. Asigna la directiva consolidada
+        self.system_instruction = f"{skill_content}\n\n{wcag_content}".strip()
+
+        # Opcional: imprimir el tamaño para debug y confirmación
+        print(f"[DEBUG BaseA11yAuditor] System Instructions cargadas exitosamente ({len(self.system_instruction)} caracteres).")
 
     def build_user_prompt(self, tree: ScreenSemanticTree, distilled_code: str) -> str:
         """

@@ -1,0 +1,151 @@
+name: Mobile A11y Guardian
+
+on:
+  pull_request:
+    branches: [main, dev]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '**/*.kt'
+      - '**/*.swift'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  audit-accessibility:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # Clona la historia para comparar contra origin/${{ github.base_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Identify Modified UI Files
+        id: filter_files
+        run: |
+          # Obtiene los archivos .kt o .swift modificados respecto a la rama base del PR
+          MODIFIED_FILES=$(git diff --name-only --diff-filter=d "origin/${{ github.base_ref }}"...HEAD | grep -E '\.(kt|swift)$' || true)
+          
+          if [ -z "$MODIFIED_FILES" ]; then
+            echo "has_files=false" >> $GITHUB_OUTPUT
+            echo "No se encontraron archivos de UI modificados."
+          else
+            echo "has_files=true" >> $GITHUB_OUTPUT
+            # Guardamos la lista en un archivo temporal para iterar de forma segura
+            echo "$MODIFIED_FILES" > modified_ui_files.txt
+            echo "Archivos detectados para auditoría:"
+            cat modified_ui_files.txt
+          fi
+
+      - name: Run A11y Audit with Gemini
+        if: steps.filter_files.outputs.has_files == 'true'
+        env:
+          A11Y_PROVIDER: 'groq' # Change 'gemini' when you want to switch
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          # Inicializa el array de comentarios vacío
+          echo "[]" > all_comments.json
+          
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "--- Analizando: $file ---"
+          
+            # Ejecuta el CLI indicando volcar a archivo temporal
+            python -m a11y_guardian.cli "$file" --json-output "temp_comments.json" || true
+          
+            # Concatena los comentarios si el archivo temporal existe
+            if [ -f "temp_comments.json" ]; then
+              jq -s '.[0] + .[1]' all_comments.json temp_comments.json > combined.json && mv combined.json all_comments.json
+            fi
+          done < modified_ui_files.txt
+
+      - name: Post Inline Review Comments on PR
+        if: steps.filter_files.outputs.has_files == 'true'
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            if (!fs.existsSync('all_comments.json')) {
+              console.log("No se generó archivo de comentarios.");
+              return;
+            }
+
+            const comments = JSON.parse(fs.readFileSync('all_comments.json', 'utf8'));
+
+            if (!comments || comments.length === 0) {
+              console.log("No se detectaron gaps de accesibilidad. ¡Todo en orden!");
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = context.payload.pull_request.number;
+            const commit_id = context.payload.pull_request.head.sha;
+
+            // 1. Obtener todos los comentarios inline ya existentes en el PR
+            const existingReviewComments = await github.paginate(
+              github.rest.pulls.listReviewComments,
+              { owner, repo, pull_number }
+            );
+
+            // 2. Obtener todos los comentarios generales ya existentes en el PR (fallback)
+            const existingIssueComments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number: pull_number }
+            );
+
+            for (const comment of comments) {
+              // Verificar si ya existe un comentario inline en la misma ruta y línea con la cabecera A11y
+              const isInlineDuplicate = existingReviewComments.some(c => 
+                c.path === comment.path && 
+                c.line === comment.line && 
+                c.body.includes("A11y: Fragmentación de lectura")
+              );
+
+              // Verificar si ya existe como comentario general
+              const isGeneralDuplicate = existingIssueComments.some(c => 
+                c.body.includes(`\`${comment.path}\` (Línea ${comment.line})`)
+              );
+
+              if (isInlineDuplicate || isGeneralDuplicate) {
+                console.log(`[SKIP] Comentario ya existente para ${comment.path}:${comment.line}. Omitiendo duplicado.`);
+                continue;
+              }
+
+              try {
+                // Intento 1: Inline Review Comment directo sobre la línea en el Diff
+                await github.rest.pulls.createReviewComment({
+                  owner: owner,
+                  repo: repo,
+                  pull_number: pull_number,
+                  commit_id: commit_id,
+                  path: comment.path,
+                  line: comment.line,
+                  body: comment.body
+                });
+                console.log(`Comentario inline publicado en ${comment.path}:${comment.line}`);
+              } catch (error) {
+                console.warn(`Línea ${comment.line} fuera del diff para ${comment.path}. Publicando como comentario general en el PR.`);
+
+                await github.rest.issues.createComment({
+                  owner: owner,
+                  repo: repo,
+                  issue_number: pull_number,
+                  body: `📍 **Hallazgo en \`${comment.path}\` (Línea ${comment.line})**\n\n${comment.body}`
+                });
+              }
+            }

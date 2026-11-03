@@ -1,0 +1,162 @@
+#name: Reusable A11y Audit Engine
+#
+#on:
+#  workflow_call:
+#    secrets:
+#      GROQ_API_KEY:
+#        required: true
+#
+#jobs:
+#  run-audit:
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: read
+#      pull-requests: write
+#    steps:
+#      # 1. Descarga el código del proyecto que originó el PR (Caller Repo)
+#      - name: Checkout Client Repository
+#        uses: actions/checkout@v5
+#        with:
+#          fetch-depth: 0
+#
+#      # 2. Descarga tu motor de Python en una subcarpeta oculta
+#      - name: Checkout A11y Guardian Engine
+#        uses: actions/checkout@v5
+#        with:
+#          repository: mi_usuario_github/mobile-a11y-guardian # ¡CAMBIA ESTO por tu usuario real!
+#          path: .guardian_engine
+#
+#      # 3. Configura Python
+#      - name: Set up Python
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: '3.11'
+#          cache: 'pip'
+#
+#      # 4. Instala las dependencias del motor
+#      - name: Install Dependencies
+#        run: |
+#          # Si tienes tu requirements.txt en el repo central, puedes usar:
+#          pip install -r .guardian_engine/requirements.txt
+#
+#      # 5. Obtiene solo los archivos Kotlin/Swift modificados contra la rama base del PR
+#      - name: Filter Modified Files
+#        id: filter_files
+#        run: |
+#          BASE_BRANCH="${{ github.base_ref }}"
+#          echo "Calculando diff contra origin/$BASE_BRANCH..."
+#
+#          MODIFIED_FILES=$(git diff --name-only --diff-filter=d "origin/$BASE_BRANCH"...HEAD \vert{} grep -E '\.(kt\vert{}swift)$' || true)
+#
+#          if [ -z "$MODIFIED_FILES" ]; then
+#            echo "has_files=false" >> $GITHUB_OUTPUT
+#            echo "No se encontraron archivos de UI modificados."
+#          else
+#            echo "has_files=true" >> $GITHUB_OUTPUT
+#            echo "$MODIFIED_FILES" > modified_ui_files.txt
+#            echo "Archivos detectados para auditoría:"
+#            cat modified_ui_files.txt
+#          fi
+#
+#      # 6. Ejecuta el análisis en Python apuntando al motor centralizado
+#      - name: Run A11y Audit Engine
+#        if: steps.filter_files.outputs.has_files == 'true'
+#        env:
+#          A11Y_PROVIDER: 'groq'
+#          GROQ_MODEL: 'qwen/qwen3.8-27b'
+#          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+#          # Esta variable permite que Python importe módulos desde la carpeta oculta
+#          PYTHONPATH: .guardian_engine
+#        run: |
+#          echo "[]" > all_comments.json
+#          while IFS= read -r file; do
+#            [ -z "$file" ] && continue
+#            echo "--- Analizando: $file ---"
+#            python -m a11y_guardian.cli "$file" --json-output "temp_comments.json" || true
+#            if [ -f "temp_comments.json" ]; then
+#              jq -s '.[0] + .[1]' all_comments.json temp_comments.json > combined.json && mv combined.json all_comments.json
+#            fi
+#          done < modified_ui_files.txt
+#
+#      # 7. Publica resultados y evita duplicados
+#      - name: Post PR Inline Suggestions
+#        if: steps.filter_files.outputs.has_files == 'true'
+#        uses: actions/github-script@v7
+#        env:
+#          # Suprime el warning de deprecación de Node 20
+#          ACTIONS_RUNNER_FORCE_NODE24: 'true'
+#        with:
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          script: |
+#            const fs = require('fs');
+#
+#            if (!fs.existsSync('all_comments.json')) {
+#              console.log("No se generó archivo de comentarios.");
+#              return;
+#            }
+#
+#            const comments = JSON.parse(fs.readFileSync('all_comments.json', 'utf8'));
+#
+#            if (!comments || comments.length === 0) {
+#              console.log("No se detectaron gaps de accesibilidad. ¡Todo en orden!");
+#              return;
+#            }
+#
+#            const owner = context.repo.owner;
+#            const repo = context.repo.repo;
+#            const pull_number = context.payload.pull_request.number;
+#            const commit_id = context.payload.pull_request.head.sha;
+#
+#            // 1. Obtener comentarios inline existentes
+#            const existingReviewComments = await github.paginate(
+#              github.rest.pulls.listReviewComments,
+#              { owner, repo, pull_number }
+#            );
+#
+#            // 2. Obtener comentarios generales existentes
+#            const existingIssueComments = await github.paginate(
+#              github.rest.issues.listComments,
+#              { owner, repo, issue_number: pull_number }
+#            );
+#
+#            for (const comment of comments) {
+#              // Evitar duplicados inline
+#              const isInlineDuplicate = existingReviewComments.some(c =>
+#                c.path === comment.path &&
+#                c.line === comment.line &&
+#                c.body.includes("A11y: Fragmentación de lectura")
+#              );
+#
+#              // Evitar duplicados generales
+#              const isGeneralDuplicate = existingIssueComments.some(c =>
+#                c.body.includes(`\`${comment.path}\` (Línea ${comment.line})`)
+#              );
+#
+#              if (isInlineDuplicate || isGeneralDuplicate) {
+#                console.log(`[SKIP] Comentario ya existente para ${comment.path}:${comment.line}. Omitiendo duplicado.`);
+#                continue;
+#              }
+#
+#              try {
+#                // Publicar como Suggestion (Inline)
+#                await github.rest.pulls.createReviewComment({
+#                  owner: owner,
+#                  repo: repo,
+#                  pull_number: pull_number,
+#                  commit_id: commit_id,
+#                  path: comment.path,
+#                  line: comment.line,
+#                  body: comment.body
+#                });
+#                console.log(`Comentario inline publicado en ${comment.path}:${comment.line}`);
+#              } catch (error) {
+#                // Fallback: Publicar como comentario general en el PR si la línea está fuera del diff
+#                console.warn(`Línea ${comment.line} fuera del diff para ${comment.path}. Publicando comentario general.`);
+#                await github.rest.issues.createComment({
+#                  owner: owner,
+#                  repo: repo,
+#                  issue_number: pull_number,
+#                  body: `📍 **Hallazgo en \`${comment.path}\` (Línea ${comment.line})**\n\n${comment.body}`
+#                });
+#              }
+#            }

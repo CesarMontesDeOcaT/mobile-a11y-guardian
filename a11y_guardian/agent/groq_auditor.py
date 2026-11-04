@@ -8,8 +8,8 @@ from a11y_guardian.agent.base import BaseA11yAuditor
 from a11y_guardian.agent.schemas import A11yAuditResult
 
 class GroqA11yAuditor(BaseA11yAuditor):
-    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
-        super().__init__()
+    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None, language: str = "kotlin"):
+        super().__init__(language=language)
         api_key = api_key or os.environ.get("GROQ_API_KEY")
         if not api_key:
             raise ValueError("No GROQ_API_KEY found in environment variables.")

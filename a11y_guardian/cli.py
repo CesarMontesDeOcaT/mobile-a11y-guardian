@@ -3,6 +3,7 @@ import textwrap
 import typer
 from pathlib import Path
 from a11y_guardian.parsers.compose import ComposeParser
+from a11y_guardian.parsers.swift import SwiftUIParser
 from a11y_guardian.agent.factory import AuditorFactory
 
 app = typer.Typer(help="Mobile A11y Guardian CLI")
@@ -30,23 +31,31 @@ def audit(
         typer.secho(f"The file {file_path} does not exist.", fg=typer.colors.RED)
         raise typer.Exit(1)
 
+    # 1. Detect language and parser based on extension
+    file_extension = file_path.suffix.lower()
+    if file_extension == ".swift":
+        language = "swift"
+        parser = SwiftUIParser()
+    else:
+        language = "kotlin"
+        parser = ComposeParser()
+
     code = file_path.read_text(encoding="utf-8")
     code_lines = code.splitlines()
 
-    # 1. Local pruning and extraction of the Semantic Tree (IR)
-    parser = ComposeParser()
+    # 2. Local pruning and extraction of the Semantic Tree (IR)
     tree, distilled_code = parser.clean_and_extract(code)
     tree.file_path = str(file_path)
 
-    # 2. Short-circuit: If there are no UI elements, skip AI calls
+    # 3. Short-circuit: If there are no UI elements, skip AI calls
     if not tree.root_nodes:
         typer.echo(f"No analyzable elements in {file_path.name}. Skipping AI call.")
         if json_output:
             json_output.write_text("[]", encoding="utf-8")
         return
 
-    # 3. Polymorphic auditing (Groq / Gemini)
-    auditor = AuditorFactory.create()
+    # 4. Polymorphic auditing (Groq / Gemini)
+    auditor = AuditorFactory.create(language=language)
     result = auditor.audit_screen(tree, distilled_code)
 
     if result.skipped:

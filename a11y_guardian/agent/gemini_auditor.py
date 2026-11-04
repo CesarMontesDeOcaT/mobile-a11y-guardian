@@ -13,8 +13,8 @@ from a11y_guardian.agent.schemas import A11yAuditResult
 logger = logging.getLogger(__name__)
 
 class GeminiA11yAuditor(BaseA11yAuditor):
-    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
-        super().__init__()
+    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None, language: str = "kotlin"):
+        super().__init__(language=language)
         api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("Not GEMINI_API_KEY found in environment variables.")

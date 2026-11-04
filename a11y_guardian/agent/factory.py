@@ -8,13 +8,13 @@ class AuditorFactory:
     """ Factory to decouple the AI engine from the rest of the application."""
 
     @staticmethod
-    def create(provider: Optional[str] = None) -> BaseA11yAuditor:
+    def create(provider: Optional[str] = None, language: str = "kotlin") -> BaseA11yAuditor:
         selected = (provider or os.environ.get("A11Y_PROVIDER", "groq")).lower().strip()
 
         if selected == "gemini":
-            return GeminiA11yAuditor()
+            return GeminiA11yAuditor(language=language)
         elif selected == "groq":
-            return GroqA11yAuditor()
+            return GroqA11yAuditor(language=language)
         else:
             raise ValueError(
                 f"AI provider '{selected}' not supported. Available options: 'groq', 'gemini'."

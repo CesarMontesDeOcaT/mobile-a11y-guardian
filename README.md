@@ -1,4 +1,4 @@
-# Mobile A11y Guardian
+# Accessibility auditor CI/CD workflow
 
 Configurable GitHub Action to automatically run accessibility audits on mobile web applications and post findings as comments on pull requests.
 

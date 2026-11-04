@@ -18,9 +18,6 @@ on:
         required: false
       GEMINI_API_KEY:
         required: false
-    paths:
-      - '**.kt'
-      - '**.swift'
 
 jobs:
   run-audit:

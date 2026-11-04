@@ -84,115 +84,18 @@ You must output strictly a valid JSON object matching this schema. The `suggeste
 
 ## Few-Shot Examples
 
-### Example 1: Merge Semantics on an Interactive Container
+### Example 1: Redundant Image Description next to Text
 
 **User Input:**
 ```kotlin
-201: Column(
-202:     modifier = Modifier
-203:         .fillMaxWidth()
-204:         .padding(16.dp),
-205: ) {
-206:     ProductItemTopSection(item = item, onToggleSelection = onToggleSelection)
-207:     Spacer(modifier = Modifier.height(16.dp))
-208:     ProductItemBottomSection(item = item, onRemove = onRemove)
-209: }
-```
-
-**Your Response:**
-```json
-{
-  "skipped": false,
-  "suggestions": [
-    {
-      "line": 202,
-      "issue": "WCAG 2.4.3 (Focus Order): This Column represents a single product item in the cart; without mergeDescendants, TalkBack forces separate swipes for the product details and action controls, fragmenting the logical unit.",
-      "suggested_code": "    modifier = Modifier.semantics(mergeDescendants = true)"
-    }
-  ]
-}
-```
-
-### Example 2: Meaningful Icon-Only Control
-
-**User Input:**
-```kotlin
-293: IconButton(
-294:     onClick = onRemove,
-295:     modifier = Modifier.size(32.dp),
-296: ) {
-297:     Icon(
-298:         imageVector = Icons.Outlined.Delete,
-299:         contentDescription = null,
-300:         tint = Orange,
-301:     )
-302: }
-```
-
-**Your Response:**
-```json
-{
-  "skipped": false,
-  "suggestions": [
-    {
-      "line": 299,
-      "issue": "WCAG 1.1.1 (Non-text Content): This Icon is the only visual representation of the 'Remove' action inside the IconButton. It cannot have a null contentDescription; it must have a meaningful localized string.",
-      "suggested_code": "        contentDescription = stringResource(R.string.cd_remove_item),"
-    }
-  ]
-}
-```
-
-### Example 3: Missing Semantic Heading
-
-**User Input:**
-```kotlin
-116: // Section heading
-117: Text(
-118:     text = stringResource(R.string.cart_section_heading),
-119:     style = HeadingBold,
-120:     color = GSVCTextPrimary,
-121:     modifier = Modifier
-122:         .fillMaxWidth()
-123:         .padding(bottom = 16.dp),
-124: )
-```
-
-**Your Response:**
-```json
-{
-  "skipped": false,
-  "suggestions": [
-    {
-      "line": 121,
-      "issue": "WCAG 1.3.1 (Info and Relationships): This Text acts as a visual section title. It must be programmatically marked as a heading so screen reader users can navigate by headings to find it.",
-      "suggested_code": "    modifier = Modifier.semantics { heading() }"
-    }
-  ]
-}
-```
-
-### Example 4: Dynamic Status Text (Live Region)
-
-**User Input:**
-```text
-220: // Success banner (always visible per spec: isCouponApplied = true)
-221: if (uiState.isCouponApplied) {
-222:     Spacer(modifier = Modifier.height(12.dp))
-223:     Box(
-224:         modifier = Modifier
-225:             .fillMaxWidth()
-226:             .background(color = CouponSuccessBackground, shape = GSVCSmall)
-227:             .border(width = 1.dp, color = CouponSuccessBorder, shape = GSVCSmall)
-228:             .padding(horizontal = 12.dp, vertical = 8.dp),
-229:     ) {
-230:         Text(
-231:             text = uiState.discountLabel,
-232:             style = HelperBold,
-233:             color = CouponSuccessText,
-234:         )
-235:     }
-236: }
+67: Row(verticalAlignment = Alignment.Top) {
+68:     Image(
+69:         painter = painterResource(id = item.imageRes),
+70:         contentDescription = item.product.name,
+71:         modifier = Modifier.size(64.dp),
+72:     )
+73:     Text(text = item.product.name, style = BodySmall)
+74: }
 ```
 
 **Your Response:**
@@ -201,8 +104,94 @@ You must output strictly a valid JSON object matching this schema. The `suggeste
    "skipped": false,
    "suggestions": [
       {
-         "line": 224,
-         "issue": "WCAG 4.1.3 (Status Messages): This Box contains a dynamically appearing success banner indicating a coupon was applied. It must be marked as a polite live region so TalkBack announces the discount immediately upon rendering.",
+         "line": 70,
+         "issue": "WCAG 1.1.1 (Non-text Content): The image description duplicates the adjacent product title text, causing TalkBack to announce the name twice; it should be set to null.",
+         "suggested_code": "        contentDescription = null,"
+      }
+   ]
+}
+```
+
+### Example 2: Key-Value Pair Traversal (Breakdown Row)
+
+**User Input:**
+```text
+240: @Composable
+241: private fun BreakdownRow(label: String, value: String) {
+242:     Row(
+243:         modifier = Modifier.fillMaxWidth(),
+244:         horizontalArrangement = Arrangement.SpaceBetween,
+245:     ) {
+246:         Text(text = label)
+247:         Text(text = value)
+248:     }
+249: }
+```
+
+**Your Response:**
+```json
+{
+   "skipped": false,
+   "suggestions": [
+      {
+         "line": 243,
+         "issue": "WCAG 2.4.3 (Focus Order): This Row displays a label-value pair; merging its descendants allows TalkBack to announce both elements together as a cohesive statement.",
+         "suggested_code": "        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true),"
+      }
+   ]
+}
+```
+
+### Example 3: Unlabeled BasicTextField
+
+**User Input:**
+```text
+200: Box(modifier = Modifier.height(39.dp)) {
+201:     BasicTextField(
+202:         value = uiState.couponCode,
+203:         onValueChange = {},
+204:         singleLine = true,
+205:     )
+206: }
+```
+
+**Your Response:**
+```json
+{
+   "skipped": false,
+   "suggestions": [
+      {
+         "line": 201,
+         "issue": "WCAG 4.1.2 (Name, Role, Value): BasicTextField lacks an accessible label, leaving screen reader users unaware of the input purpose; provide a contentDescription via semantics.",
+         "suggested_code": "    BasicTextField(modifier = Modifier.semantics { contentDescription = couponFieldLabel },"
+      }
+   ]
+}
+```
+
+### Example 4: Dynamic Status Banner (Live Region)
+
+**User Input:**
+```text
+220: if (uiState.isCouponApplied) {
+221:     Box(
+222:         modifier = Modifier
+223:             .fillMaxWidth()
+224:             .background(color = CouponSuccessBackground),
+225:     ) {
+226:         Text(text = uiState.discountLabel)
+227:     }
+228: }
+```
+
+**Your Response:**
+```json
+{
+   "skipped": false,
+   "suggestions": [
+      {
+         "line": 222,
+         "issue": "WCAG 4.1.3 (Status Messages): This Box conditionally displays a confirmation banner; mark it as a polite live region so TalkBack announces the update dynamically.",
          "suggested_code": "        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }"
       }
    ]

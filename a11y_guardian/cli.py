@@ -30,6 +30,10 @@ def audit(
         typer.secho(f"The file {file_path} does not exist.", fg=typer.colors.RED)
         raise typer.Exit(1)
 
+    # Detect language based on extension
+    file_extension = file_path.suffix.lower()
+    language = "swift" if file_extension == ".swift" else "kotlin"
+
     code = file_path.read_text(encoding="utf-8")
     code_lines = code.splitlines()
 
@@ -46,7 +50,7 @@ def audit(
         return
 
     # 3. Polymorphic auditing (Groq / Gemini)
-    auditor = AuditorFactory.create()
+    auditor = AuditorFactory.create(language=language)
     result = auditor.audit_screen(tree, distilled_code)
 
     if result.skipped:

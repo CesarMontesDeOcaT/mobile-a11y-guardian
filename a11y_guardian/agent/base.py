@@ -7,7 +7,7 @@ from a11y_guardian.agent.schemas import A11yAuditResult
 class BaseA11yAuditor(ABC):
     """Base interface for all AI auditing engines."""
 
-    def __init__(self):
+    def __init__(self, language: str = "kotlin"):
         # 1. Define robust paths based on the current module
         # Assumes the a11y_guardian/ directory is structured as follows:
         # a11y_guardian/
@@ -17,9 +17,13 @@ class BaseA11yAuditor(ABC):
         # │   └── compose_merge_semantics_skill_template_android.md
         # └── rules/
         #     └── wcag_2_2_mobile.md
+        if language == "swift":
+            skill_filename = "swiftui_accessibility_skill_template.md"
+        else:
+            skill_filename = "compose_accessibility_skill_template.md"
 
         base_dir = Path(__file__).resolve().parent.parent
-        skill_path = base_dir / "skills" / "compose_accessibility_skill_template.md"
+        skill_path = base_dir / "skills" / skill_filename
         rules_path = base_dir / "rules" / "wcag_2_2_mobile.md"
 
         # 2. Strict validation. Fail if the files do not exist in CI/CD

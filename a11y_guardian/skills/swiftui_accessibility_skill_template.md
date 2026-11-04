@@ -16,9 +16,7 @@ You are an automated code review engine specializing in iOS accessibility (Voice
 
 1. **WCAG 1.1.1 (Non-text Content):** Every `Image` must be accessible. If it conveys meaning, it needs an `accessibilityLabel("...")`. If it is purely decorative, it must explicitly use `.accessibilityHidden(true)` or be instantiated as `Image(decorative: "...")`.
 2. **WCAG 1.3.1 (Info and Relationships):** Text that acts as a visual section title must be programmatically marked as a heading using `.accessibilityAddTraits(.isHeader)`.
-3. **WCAG 1.4.4 (Resize text):** Text should scale with Dynamic Type. Hardcoding fixed sizes without scaling (e.g., `.font(.system(size: 14))`) is a violation. Use standard semantic fonts (e.g., `.font(.headline)`) or relative custom fonts.
-4. **WCAG 2.4.3 (Focus Order):** Grouped logical containers (like cards or list items) containing multiple readable descendants must use `.accessibilityElement(children: .combine)` so VoiceOver reads them as a single cohesive unit.
-5. **WCAG 2.5.8 (Target Size):** Standalone interactive elements must ensure a minimum touch target. In iOS, this means ensuring a frame of at least 44x44pt (e.g., `.frame(minWidth: 44, minHeight: 44)`).
+3. **WCAG 2.4.3 (Focus Order):** Grouped logical containers (like cards or list items) containing multiple readable descendants must use `.accessibilityElement(children: .combine)` so VoiceOver reads them as a single cohesive unit.
 
 ## Remediation Strategy for SwiftUI Modifiers
 

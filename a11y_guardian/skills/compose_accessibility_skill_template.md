@@ -23,9 +23,7 @@ You are an automated code review engine specializing in Android accessibility (T
 
 1. **WCAG 1.1.1 (Non-text Content):** Every `Icon` or `Image` must have a `contentDescription`. If decorative, it must explicitly be `contentDescription = null`. If meaningful, it needs a descriptive string.
 2. **WCAG 1.3.1 (Info and Relationships):** Text that acts as a visual section title must be programmatically marked as a heading using `Modifier.semantics { heading() }`.
-3. **WCAG 1.4.4 (Resize text):** Font sizes and line heights must use `.sp` (scalable pixels). Using `.dp` is a violation.
-4. **WCAG 2.4.3 (Focus Order):** Grouped logical containers (like cards or list items) containing multiple readable descendants must use `Modifier.semantics(mergeDescendants = true)` so TalkBack reads them as a single cohesive unit.
-5. **WCAG 2.5.8 (Target Size):** Standalone clickable elements must ensure a minimum touch target (e.g., via `Modifier.minimumInteractiveComponentSize()`).
+3. **WCAG 2.4.3 (Focus Order):** Grouped logical containers (like cards or list items) containing multiple readable descendants must use `Modifier.semantics(mergeDescendants = true)` so TalkBack reads them as a single cohesive unit.
 
 ## Remediation Strategy for Jetpack Compose Modifiers
 

@@ -1,6 +1,6 @@
 import re
 from typing import Tuple, List, Optional
-from a11y_guardian.ir import ScreenSemanticTree, SemanticNode
+from a11y_guardian.ir import ScreenSemanticTree, UINode
 
 class SwiftUIParser:
     """Parser estático para extraer el Árbol Semántico (IR) de vistas SwiftUI."""
@@ -25,7 +25,7 @@ class SwiftUIParser:
         lines = code.splitlines()
         view_name = self._find_view_name(lines) or "SwiftUIView"
 
-        root_nodes: List[SemanticNode] = []
+        root_nodes: List[UINode] = []
         in_preview = False
         preview_brace_depth = 0
         distilled_lines: List[str] = []
@@ -72,7 +72,7 @@ class SwiftUIParser:
                 return match.group(1)
         return None
 
-    def _analyze_line(self, line_number: int, current_line: str, all_lines: List[str]) -> Optional[SemanticNode]:
+    def _analyze_line(self, line_number: int, current_line: str, all_lines: List[str]) -> Optional[UINode]:
         match = self.component_regex.search(current_line)
         if not match:
             return None
@@ -94,7 +94,7 @@ class SwiftUIParser:
                     ".accessibilityElement(children: .ignore)" in subsequent_block
             )
 
-            return SemanticNode(
+            return UINode(
                 id=f"container_{line_number}",
                 component_type="Container",
                 line_number=line_number,
@@ -108,7 +108,7 @@ class SwiftUIParser:
             subsequent_block = "\n".join(all_lines[line_number - 1 : min(line_number + 10, len(all_lines))])
             merged_descendants = ".accessibilityElement(children: .combine)" in subsequent_block
 
-            return SemanticNode(
+            return UINode(
                 id=f"container_{line_number}",
                 component_type="Container",
                 line_number=line_number,
@@ -119,7 +119,7 @@ class SwiftUIParser:
 
         # Caso C: Textos
         elif comp_name == "Text":
-            return SemanticNode(
+            return UINode(
                 id=f"text_{line_number}",
                 component_type="Text",
                 line_number=line_number,
@@ -130,7 +130,7 @@ class SwiftUIParser:
 
         # Caso D: Imágenes o Iconos
         elif comp_name in {"Image", "Label", "AsyncImage"}:
-            return SemanticNode(
+            return UINode(
                 id=f"img_{line_number}",
                 component_type="Image",
                 line_number=line_number,

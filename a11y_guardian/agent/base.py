@@ -19,7 +19,7 @@ class BaseA11yAuditor(ABC):
         #     └── wcag_2_2_mobile.md
 
         base_dir = Path(__file__).resolve().parent.parent
-        skill_path = base_dir / "skills" / "compose_merge_semantics_skill_template_android.md"
+        skill_path = base_dir / "skills" / "compose_accessibility_skill_template.md"
         rules_path = base_dir / "rules" / "wcag_2_2_mobile.md"
 
         # 2. Strict validation. Fail if the files do not exist in CI/CD

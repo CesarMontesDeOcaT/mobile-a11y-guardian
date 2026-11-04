@@ -175,16 +175,24 @@ You must output strictly a valid JSON object matching this schema. The `suggeste
 ### Example 4: Dynamic Status Text (Live Region)
 
 **User Input:**
-```kotlin
-91: private fun EmptyCartContent() {
-92:     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp)) {
-98:         Text(
-99:             text = stringResource(R.string.cart_empty),
-100:             style = BodyBold,
-101:             color = GSVCTextPrimary,
-102:         )
-103:     }
-104: }
+```text
+220: // Success banner (always visible per spec: isCouponApplied = true)
+221: if (uiState.isCouponApplied) {
+222:     Spacer(modifier = Modifier.height(12.dp))
+223:     Box(
+224:         modifier = Modifier
+225:             .fillMaxWidth()
+226:             .background(color = CouponSuccessBackground, shape = GSVCSmall)
+227:             .border(width = 1.dp, color = CouponSuccessBorder, shape = GSVCSmall)
+228:             .padding(horizontal = 12.dp, vertical = 8.dp),
+229:     ) {
+230:         Text(
+231:             text = uiState.discountLabel,
+232:             style = HelperBold,
+233:             color = CouponSuccessText,
+234:         )
+235:     }
+236: }
 ```
 
 **Your Response:**
@@ -193,9 +201,9 @@ You must output strictly a valid JSON object matching this schema. The `suggeste
    "skipped": false,
    "suggestions": [
       {
-         "line": 98,
-         "issue": "WCAG 4.1.3 (Status Messages): This Text acts as an empty state message that may appear dynamically. Marking it as a polite live region ensures TalkBack announces it when the cart becomes empty.",
-         "suggested_code": "    Text(modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },"
+         "line": 224,
+         "issue": "WCAG 4.1.3 (Status Messages): This Box contains a dynamically appearing success banner indicating a coupon was applied. It must be marked as a polite live region so TalkBack announces the discount immediately upon rendering.",
+         "suggested_code": "        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }"
       }
    ]
 }

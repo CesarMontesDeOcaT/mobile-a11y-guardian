@@ -19,16 +19,6 @@ Information and user interface components must be presentable to users in ways t
 *   **The Problem:** Visual users can identify sections of a screen by looking at large, bold text. Blind users rely on TalkBack's "Heading" navigation mode to jump between sections. If visual headings aren't programmatically marked, this navigation breaks.
 *   **The Solution:** Any `Text` composable that acts as a title for a section or screen must include `Modifier.semantics { heading() }`.
 
-[//]: # (### WCAG 1.4.4: Resize text)
-
-[//]: # (**Official Definition:** Text can be resized without assistive technology up to 200 percent without loss of content or functionality.)
-
-[//]: # (**Compose Application &#40;Scalable Pixels&#41;:**)
-
-[//]: # (*   **The Problem:** Hardcoding text sizes prevents the OS-level font scaling features from working, severely impacting users with low vision.)
-
-[//]: # (*   **The Solution:** Font sizes in `Text` components or `TextStyle` definitions MUST always use `.sp` &#40;scalable pixels&#41;. Using `.dp` for `fontSize` or `lineHeight` is a direct violation.)
-
 ---
 
 ## Principle 2: Operable
@@ -39,16 +29,6 @@ User interface components and navigation must be operable.
 **Compose Application (Layout Traversal & Merge Semantics):**
 *   **The Problem (Fragmentation):** Mobile screen readers read the screen via linear swipes. If a logical container (like a product card, a list item, or a user profile row) is built using multiple texts and icons, TalkBack traps the user, forcing them to swipe multiple times to read information that should belong to a single block.
 *   **The Solution:** Visual components that act as a single semantic or interactive unit MUST group their semantic children. Apply `Modifier.semantics(mergeDescendants = true)` to the parent container (`Card`, `Row`, `Column`) so TalkBack announces the entire group in a single swipe.
-
-[//]: # (### WCAG 2.5.8: Target Size &#40;Minimum&#41;)
-
-[//]: # (**Official Definition:** The size of the target for pointer inputs is at least 24 by 24 CSS pixels. *&#40;Note: Android's Material Design strictly requires a minimum of 48x48 dp for interactive elements&#41;.*)
-
-[//]: # (**Compose Application &#40;Touch Targets&#41;:**)
-
-[//]: # (*   **The Problem:** Tiny clickable elements are difficult to activate for users with motor disabilities.)
-
-[//]: # (*   **The Solution:** Custom clickable composables &#40;e.g., a `Box` or `Icon` with `.clickable`&#41; must ensure they meet the minimum touch target size. This is usually enforced by wrapping them in standard components &#40;like `IconButton`&#41; or explicitly applying `Modifier.minimumInteractiveComponentSize&#40;&#41;`.)
 
 ---
 

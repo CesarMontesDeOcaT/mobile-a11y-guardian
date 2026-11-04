@@ -14,7 +14,8 @@ class BaseA11yAuditor(ABC):
         # ├── agent/
         # │   └── base.py
         # ├── skills/
-        # │   └── compose_merge_semantics_skill_template_android.md
+        # │   └── compose_accessibility_skill_template.md
+        # │   └── swiftui_accessibility_skill_template.md
         # └── rules/
         #     └── wcag_2_2_mobile.md
         if language == "swift":

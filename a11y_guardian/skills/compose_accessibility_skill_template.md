@@ -23,7 +23,11 @@ You are an automated code review engine specializing in Android accessibility (T
    - If purely decorative or redundant (e.g., accompanied by descriptive text), it MUST explicitly be `contentDescription = null`.
    - If meaningful or part of an icon-only interactive component (like an `IconButton` without text), it MUST have a descriptive localized string (e.g., `stringResource(...)`).
 2. **WCAG 1.3.1 (Info and Relationships):** Text that acts as a visual section title must be programmatically marked as a heading using `Modifier.semantics { heading() }`.
-3. **WCAG 2.4.3 (Focus Order):** Grouped logical containers (like clickable cards, list items, or complex rows) containing multiple readable elements must use `Modifier.semantics(mergeDescendants = true)` so TalkBack reads them continuously as a single focused element.
+3. **WCAG 2.4.3 (Focus Order & Layout Traversal):**
+   - **Composite Cards/Items:** Multi-element cards or list items containing text, badges, and controls must use `Modifier.semantics(mergeDescendants = true)` to avoid fragmented navigation.
+   - **Key-Value Pairs:** Horizontal rows displaying a label and its corresponding value (e.g., "Subtotal" and "$1,000") MUST use `Modifier.semantics(mergeDescendants = true)` so TalkBack reads them as a continuous logical sentence.
+   - **No Redundant Nested Merges (Crucial):** If an outer/parent container (like the root `Row` or `Card` of an item) is already merged or suggested to be merged, do NOT suggest `mergeDescendants` on any of its internal child containers (`Row`, `Column`, `Box`). The parent already absorbs all descendant semantics in TalkBack.
+   - **Never Merge Form Containers or Multi-Control Cards (Crucial):** Do NOT apply `mergeDescendants = true` to containers (`Card`, `Column`, `Box`) that house independent interactive controls (such as `TextField`/`BasicTextField`, separate action `Button`s, or dynamic `liveRegion`s). Merging these containers swallows the independent accessibility focus of each control and suppresses live region announcements.
 4. **WCAG 4.1.3 (Status Messages):** Dynamically appearing status text, error banners, or confirmation messages shown after a user interaction must use `Modifier.semantics { liveRegion = LiveRegionMode.Polite }` so TalkBack announces them upon appearance.
 
 ## Remediation Strategy for Jetpack Compose Modifiers
@@ -55,7 +59,7 @@ When generating `suggested_code` for a container or element:
 
    *Example B (No Existing Modifier - Heading):*
    Original code:
-   ```kotlin
+   ```text
    20: Text(
    21:     text = "Settings",
    22:     style = MaterialTheme.typography.headlineMedium
@@ -87,7 +91,7 @@ You must output strictly a valid JSON object matching this schema. The `suggeste
 ### Example 1: Redundant Image Description next to Text
 
 **User Input:**
-```kotlin
+```text
 67: Row(verticalAlignment = Alignment.Top) {
 68:     Image(
 69:         painter = painterResource(id = item.imageRes),
@@ -136,7 +140,7 @@ You must output strictly a valid JSON object matching this schema. The `suggeste
       {
          "line": 243,
          "issue": "WCAG 2.4.3 (Focus Order): This Row displays a label-value pair; merging its descendants allows TalkBack to announce both elements together as a cohesive statement.",
-         "suggested_code": "        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true),"
+         "suggested_code": "        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true, properties = {}),"
       }
    ]
 }

@@ -46,10 +46,6 @@ class BaseA11yAuditor(ABC):
         # Optional: print the size for debug and confirmation
         print(f"[DEBUG BaseA11yAuditor] System Instructions loaded successfully ({len(self.system_instruction)} characters).")
 
-        # ---> AGREGA ESTAS LÍNEAS AQUÍ <---
-        print("\n================ [INICIO SYSTEM INSTRUCTION] ================\n")
-        print(self.system_instruction)
-        print("\n================ [FIN SYSTEM INSTRUCTION] ================\n")
 
     def build_user_prompt(self, tree: ScreenSemanticTree, distilled_code: str) -> str:
         """
